@@ -2,3 +2,4 @@
 resharper_nullable_warning_suppression_is_used_highlighting = none
 resharper_redundant_suppress_nullable_warning_expression_highlighting = none
 dotnet_diagnostic.ca2211.severity = none # Non-constant fields should not be visible
+dotnet_diagnostic.CA1505.severity = none # Avoid unmaintainable code

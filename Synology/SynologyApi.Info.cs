@@ -19,15 +19,21 @@ public sealed partial class SynologyApi {
 	/// <param name="query">API names, separated by a comma "," or use "all" to get all supported APIs. eg:SYNO.Foto.,SYNO.FotoTeam.,SYNO.API.Auth,SYNO.FileStation</param>
 	/// <returns></returns>
 	public async Task<Dictionary<string, ApiInfo>?> GetApiInfoMethods(string query = "all") {
-		//var apiUrl = $"{Server}/webapi/entry.cgi?api=SYNO.API.Info&version=1&method=query&query=all";
-		var apiUrl = $"{Server}/webapi/entry.cgi?api=SYNO.API.Info&version=1&method=query&query={Uri.EscapeDataString(query)}";
 
-		var result= GetAndValidate<Dictionary<string, ApiInfo>?>(await GetResultAsString(apiUrl).ConfigureAwait(false));
-		#if DEBUG
+		var json = await GetResultAsString(ApiName.SYNO_API_Info,
+		                                   "query",
+		                                   new()
+		                                   {
+			                                   {"query", query},
+		                                   })
+			.ConfigureAwait(false);
+		var result = GetAndValidate<Dictionary<string, ApiInfo>?>(json);
+#if DEBUG
+
 		// Ensure all JSON field deserialized
 		if (result != null)
 			foreach (var item in result.Values)
-				item.EnsureAllDataDeserialized();
+				item.EnsureAllDataDeserialized(json);
 #endif
 		return result;
 	}

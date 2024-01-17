@@ -19,7 +19,8 @@ internal static class Helper {
 		                                                                  WriteIndented = true,
 		                                                                  IgnoreReadOnlyFields = true,
 		                                                                  IgnoreReadOnlyProperties = true,
-		                                                                  DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+		                                                                  DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+
 	                                                                  };
 
 	public static readonly JsonSerializerOptions jsonOptionIndentedAll = new()
@@ -49,7 +50,11 @@ internal static class Helper {
 	}
 
 	public static string Serialize(this object? obj) {
-		return JsonSerializer.Serialize(obj, jsonOptionIndented);
+		try {
+			return JsonSerializer.Serialize(obj, jsonOptionIndented);
+		} catch {
+			return JsonSerializer.Serialize(obj, jsonOptionIndented);
+		}
 	}
 
 	public static void ExecuteInFolder(DirectoryInfo di) {

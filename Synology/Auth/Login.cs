@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-namespace Synology.Info;
+namespace Synology.Auth;
 
 /// <summary>
 /// Login response
@@ -43,4 +43,9 @@ public class Login : JsonModel {
 	/// </summary>
 	/// <remarks>Each subsequent API request should provide arequest parameter SynoToken=&lt;synotoken&gt; along with other parameters.</remarks>
 	public string? synotoken { get; init; }
+
+
+	public string? account{ get; init; }
+	public string? device_id{ get; init; }
+	public string? ik_message{ get; init; }
 }

@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
@@ -28,57 +28,93 @@ using Microsoft.Extensions.Logging;
 namespace Synology;
 
 /// <summary>
-/// Synology API Wrapper
+///     Synology API Wrapper
 /// </summary>
 public sealed partial class SynologyApi : IDisposable {
 	private readonly HttpClient m_HttpClient;
 
 	/// <summary>
-	/// Constructor
+	///     Constructor
 	/// </summary>
 	/// <param name="server"></param>
 	public SynologyApi(string server) {
-		Server = server;
+		Server = server.Trim('/');
 
 		m_HttpClient = new();
 	}
 
 	/// <summary>
-	/// Logger
+	///     Logger
 	/// </summary>
 	public ILogger? Logger { get; set; }
 
 	/// <summary>
-	/// Server
+	///     Server
 	/// </summary>
 	public string Server { get; }
 
 	/// <inheritdoc />
 	public void Dispose() {
-		Logger?.LogInformation("[Logout and client disposing] {Server}", Server);
+		Logger?.LogInformation("Dispose SynologyAPI object for server {Server}", Server);
 		EnsureLoggedOut();
 		m_HttpClient.Dispose();
 	}
 
 	/// <summary>
-	/// Send a POST request to the server and return the result as a string
+	///     Send a POST request to the server and return the result as a string
 	/// </summary>
-	/// <param name="requestUri"></param>
-	/// <param name="content"></param>
 	/// <returns></returns>
-	public async Task<string> PostResultAsString([StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri, HttpContent? content = null) {
-		Logger?.LogDebug("[POST] {RequestUri}", requestUri);
-		var response = await m_HttpClient.PostAsync(requestUri, content).ConfigureAwait(false);
+	internal async Task<string> PostResultAsString(ApiName apiName,string method, Dictionary<string, string?>? parameters=null, HttpContent? content = null) {
+		var uri=GetUri(apiName,method,parameters);
+		Logger?.LogTrace("[POST] {RequestUri}", uri);
+		var response = await m_HttpClient.PostAsync(uri, content).ConfigureAwait(false);
 
 		// Check if the request was successful
 		if (response.IsSuccessStatusCode) return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 		return new HttpRequestException($"Request failed with status code {response.StatusCode}").Message;
-
 	}
 
-	public async Task<string> GetResultAsString([StringSyntax(StringSyntaxAttribute.Uri)] string? requestUri) {
-		Logger?.LogDebug("[GET] {RequestUri}", requestUri);
-		var response = await m_HttpClient.GetAsync(requestUri).ConfigureAwait(false);
+	private   Uri GetUri(ApiName apiName,string method, Dictionary<string, string?>? parameters=null,bool addSid=true,bool addSynoToken=true) {
+		//var apiUrl = $"{Server}/webapi/entry.cgi?api=SYNO.API.Auth&version=6&method=login&{parameters}";
+		var sb = new StringBuilder( Server);
+		sb .Append("/webapi/");
+		sb .Append(apiName.GetPath());
+		sb .Append("?api=");
+		sb .Append(apiName.GetApiName());
+		sb .Append("&version=");
+		sb .Append(apiName.GetMaxVersion());
+		sb .Append("&method=");
+		sb .Append(method);
+		if(parameters is not null && parameters.Count>0) {
+
+			foreach (var item in parameters) {
+				if (item.Value is null) continue;
+				sb.Append('&');
+				sb.Append(item.Key);
+				sb.Append('=');
+				sb.Append(Uri.EscapeDataString(item.Value));
+			}
+		}
+		if (LoginInformation is not null) {
+			if(addSid && !string.IsNullOrWhiteSpace( LoginInformation.sid)){
+				sb.Append("&_sid=");
+				sb.Append(LoginInformation.sid);
+			}
+			if(addSynoToken && !string.IsNullOrWhiteSpace( LoginInformation.synotoken)){
+				sb.Append("&SynoToken=");
+				sb.Append(LoginInformation.synotoken);
+			}
+
+		}
+		return new Uri(sb.ToString(),UriKind.Absolute);
+
+
+
+	}
+	internal async Task<string> GetResultAsString(ApiName apiName,string method, Dictionary<string, string?>? parameters=null ) {
+		var uri =GetUri(apiName,method,parameters);
+		Logger?.LogTrace("[GET] {RequestUri}", uri);
+		var response = await m_HttpClient.GetAsync(uri).ConfigureAwait(false);
 
 		// Check if the request was successful
 		if (response.IsSuccessStatusCode) return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -92,16 +128,14 @@ public sealed partial class SynologyApi : IDisposable {
 		// Console.WriteLine($"Request failed with status code {response.StatusCode}");
 	}
 
-
-	public T? GetAndValidate<T>(string json) {
+	internal T? GetAndValidate<T>(string json) {
 		Logger?.LogTrace("[Deserialize]Source {Json}", json);
-		var response = JsonSerializer.Deserialize<ApiResponse<T?>>(json);
-		if (response is null) throw new ApiException($"Cannot deserialize string value to ApiResponse<{typeof(T).Name}>. Content:\r\n{json}");
+		var response = JsonSerializer.Deserialize<ApiResponse<T?>>(json)
+		               ?? throw new ApiException($"Cannot deserialize string value to ApiResponse<{typeof(T).Name}>. Content:\r\n{json}");
 		if (response.success) {
-			#if DEBUG
-			if( response.data is JsonModel jsonModel)
-				jsonModel.EnsureAllDataDeserialized();
-			#endif
+#if DEBUG
+			if (response.data is JsonModel jsonModel) jsonModel.EnsureAllDataDeserialized(json);
+#endif
 			return response.data;
 		}
 		if (response.error is null) throw new ApiException($"Request failed. No error returned. Content:\r\n{response.Serialize()}");
@@ -138,14 +172,18 @@ public sealed partial class SynologyApi : IDisposable {
 
 	private ApiResponse<T?> DeserializeResponse<T>(string json) {
 		Logger?.LogTrace("[Deserialize]Source {Json}", json);
-		var obj = JsonSerializer.Deserialize<ApiResponse<T?>>(json);
-		if (obj is null) throw new ApiException($"Cannot deserialize string value to ApiResponse<{typeof(T).Name}>. Content:\r\n{json}");
-		#if DEBUG
-		if(obj.data is JsonModel jsonModel)
-			jsonModel.EnsureAllDataDeserialized();
-		#endif
-		return obj;
+		try {
+			var obj = JsonSerializer.Deserialize<ApiResponse<T?>>(json);
+			if (obj is null) throw new ApiException($"Cannot deserialize string value to ApiResponse<{typeof(T).Name}>.{Environment.NewLine}*** JSON Content ***************************\r\n{json}{Environment.NewLine}");
+#if DEBUG
+			if (obj.data is JsonModel jsonModel) jsonModel.EnsureAllDataDeserialized(json);
+#endif
+			return obj;
+		} catch (Exception ex) {
+			throw new ApiException($"Cannot deserialize string value to ApiResponse<{typeof(T).Name}>. Content:\r\n{json}", ex);
+		}
 	}
+
 
 	// ReSharper disable UnusedAutoPropertyAccessor.Local
 	private sealed class ApiResponse<T> {
@@ -157,16 +195,9 @@ public sealed partial class SynologyApi : IDisposable {
 			public required int code { get; set; }
 
 			// ReSharper disable once UnusedMember.Local
-			public required Dictionary<string, string>? errors { get; set; }
+			public   Dictionary<string, string>? errors { get; set; }
 		}
 	}
-	// ReSharper restore UnusedAutoPropertyAccessor.Local
 
-	private static string GetParameters(Dictionary<string, string?> dictionary) {
-		var items = new List<string>();
-		foreach(var item in dictionary)
-			if (item.Value is not null)
-				items.Add($"{item.Key}={Uri.EscapeDataString(item.Value)}");
-		return string.Join("&", items);
-	}
+	// ReSharper restore UnusedAutoPropertyAccessor.Local
 }

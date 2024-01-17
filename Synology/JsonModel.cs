@@ -65,20 +65,20 @@ public class JsonModel {
 	/// Ensure all JSON properties deserialized on own property (<see cref="AdditionalProperties"/> must be empty)
 	/// </summary>
 	/// <exception cref="ApiException"></exception>
-	public void EnsureAllDataDeserialized() {
+	public void EnsureAllDataDeserialized(string initialjson) {
 		var model = this;
 		if (model.AdditionalProperties is null) return;
 		var type = model.GetType();
-		if (model.AdditionalProperties.Count > 0) throw new ApiException($"Some properties not deserialized for type {type.FullName}.{Environment.NewLine}{Serialize(model.AdditionalProperties)}");
+		if (model.AdditionalProperties.Count > 0) throw new ApiException($"Some properties not deserialized for type {type.FullName}.{Environment.NewLine}{Serialize(model.AdditionalProperties)}{Environment.NewLine}Response:{initialjson}");
 		foreach (var property in type.GetProperties()) {
 			var value = property.GetValue(model);
 			switch (value) {
 				case null: continue;
 				case JsonModel jsonModel:
-					jsonModel.EnsureAllDataDeserialized();
+					jsonModel.EnsureAllDataDeserialized(initialjson);
 					break;
 				case IEnumerable<JsonModel> jsonModels: {
-					foreach (var jsonModel2 in jsonModels) jsonModel2.EnsureAllDataDeserialized();
+					foreach (var jsonModel2 in jsonModels) jsonModel2.EnsureAllDataDeserialized(initialjson);
 					break;
 				}
 			}

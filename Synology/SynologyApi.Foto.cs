@@ -115,9 +115,25 @@ public sealed partial class SynologyApi {
 		if (!string.IsNullOrEmpty(passphrase)) uri.Append($"&passphrase={passphrase}");
 
 		var concat = string.Join("\",\"", additional.Where(static i => !string.IsNullOrWhiteSpace(i)).Select(i => i.Trim()));
-		if (!string.IsNullOrWhiteSpace(concat)) uri.Append($"&additional=[\"{concat}\"]");
 
-		return GetAndValidate<FotoItem.List?>(await GetResultAsString(uri.ToString()).ConfigureAwait(false));
+
+
+		var json = await GetResultAsString(ApiName.SYNO_Foto_Browse_Item,
+		                                             "list",
+		                                             new()
+		                                             {
+			                                             {"offset",  offset.ToString()},
+			                                             {"limit",  limit.ToString()},
+			                                             {"folder_id",  folder_id?.ToString()},
+			                                             {"sort_by",  sort_by},
+			                                             {"sort_direction", sort_direction},
+			                                             {"type", type},
+			                                             {"passphrase", passphrase},
+			                                             {"additional", string.IsNullOrWhiteSpace(concat)?null:concat},
+		                                             }).ConfigureAwait(false);
+
+
+		return GetAndValidate<FotoItem.List?>(json);
 	}
 
 	/// <summary>
@@ -144,19 +160,30 @@ public sealed partial class SynologyApi {
 		string? sort_by = null,
 		string? sort_direction = null) {
 		EnsureLoggedIn();
-		var uri = new StringBuilder($"{Server}/webapi/entry.cgi?api=SYNO.Foto.Browse.Folder&version=1&method=list&offset={offset}&limit={limit}");
-		if (id is not null) uri.Append($"&id={id}");
-		if (!string.IsNullOrEmpty(sort_by)) uri.Append($"&sort_by={sort_by}");
-		if (!string.IsNullOrEmpty(sort_direction)) uri.Append($"&sort_direction={sort_direction}");
 
-		return GetAndValidate<Folder.List>(await GetResultAsString(uri.ToString()).ConfigureAwait(false))?.list;
+		var resultAsString = await GetResultAsString(ApiName.SYNO_Foto_Browse_Folder,
+		                                             "list",
+		                                             new()
+		                                             {
+			                                             {"offset",  offset.ToString()},
+			                                             {"limit",  limit.ToString()},
+			                                             {"id",id?.ToString()},
+			                                             {"sort_by",  sort_by},
+			                                             {"sort_direction", sort_direction},
+		                                             }).ConfigureAwait(false);
+		return GetAndValidate<Folder.List>(resultAsString)?.list;
 	}
 
 	public async Task<Folder?> FotoBrowseFolderGet(int? id) {
 		EnsureLoggedIn();
-
-//http://192.168.0.200:5000/webapi/entry.cgi?api=SYNO.Foto.Browse.Folder&version=1&method=get&id=2377
-		return GetAndValidate<FotoBrowseFolderGetResponse>(await GetResultAsString($"{Server}/webapi/entry.cgi?api=SYNO.Foto.Browse.Folder&version=1&method=get&id={id}").ConfigureAwait(false))?.folder;
+		var json = await GetResultAsString(ApiName.SYNO_Foto_Browse_Folder,
+		                                   "get",
+		                                   new()
+		                                   {
+			                                   {"id", id?.ToString()},
+		                                   })
+			.ConfigureAwait(false);
+		return GetAndValidate<FotoBrowseFolderGetResponse>(json)?.folder;
 	}
 
 

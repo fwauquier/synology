@@ -20,7 +20,8 @@
 // THE SOFTWARE.
 
 using System.Diagnostics.CodeAnalysis;
-using Synology.Info;
+using Microsoft.Extensions.Logging;
+using Synology.Auth;
 
 // ReSharper disable UnusedMember.Global
 
@@ -44,13 +45,14 @@ public sealed partial class SynologyApi {
 	}
 
 	/// <summary>
-	/// Logout
+	///     Logout
 	/// </summary>
 	/// <returns>No specific response. It returns with an empty "success" response if completed without error.</returns>
 	public async Task<string> AuthLogOut() {
 		EnsureLoggedIn();
-		var apiUrl = $"{Server}/webapi/entry.cgi?api=SYNO.API.Auth&version=6&method=logout&_sid={LoginInformation.sid}";
-		var result = await GetResultAsString(apiUrl).ConfigureAwait(false);
+		Logger?.LogDebug("SYNO.API.Auth.logout");
+		//var apiUrl = $"{Server}/webapi/entry.cgi?api=SYNO.API.Auth&version=6&method=logout&_sid={LoginInformation.sid}";
+		var result = await GetResultAsString(ApiName.SYNO_API_Auth,"logout").ConfigureAwait(false);
 		LoginInformation = null;
 		return result;
 	}
@@ -85,28 +87,32 @@ public sealed partial class SynologyApi {
 		string? enable_device_token = null,
 		string? device_name = null,
 		string? device_id = null) {
-		var parameters = GetParameters(new()
-		                               {
-			                               {"account", user},
-			                               {"passwd", password},
-			                               {"session", session},
-			                               {"format", format},
-			                               {"opt_code", opt_code},
-			                               {"enable_syno_token", enable_syno_token},
-			                               {"enable_device_token", enable_device_token},
-			                               {"device_name", device_name},
-			                               {"device_id", device_id}
-		                               });
+		Logger?.LogDebug("AuthLogin");
 
-		var apiUrl  = $"{Server}/webapi/entry.cgi?api=SYNO.API.Auth&version=6&method=login&{parameters}";
-		var json    = await GetResultAsString(apiUrl).ConfigureAwait(false);
-		var result1 = DeserializeResponse<Login>(json);
-		if (result1.success) {
-			LoginInformation = result1.data;
+		var json = await GetResultAsString(ApiName.SYNO_API_Auth,
+		                                   "login",
+		                                   new()
+		                                   {
+			                                   {"account", user},
+			                                   {"passwd", password},
+			                                   {"session", session},
+			                                   {"format", format},
+			                                   {"opt_code", opt_code},
+			                                   {"enable_syno_token", enable_syno_token},
+			                                   {"enable_device_token", enable_device_token},
+			                                   {"device_name", device_name},
+			                                   {"device_id", device_id}
+		                                   })
+			.ConfigureAwait(false);
+		var login = DeserializeResponse<Login>(json);
+		if (login.success) {
+			LoginInformation = login.data;
 			return LoginInformation is not null;
 		}
-		var error = result1.error;
-		throw GetAuthException(error, result1.Serialize());
+
+		var exception = GetAuthException(login.error, login.Serialize());
+		Logger?.LogWarning("{Message}",exception.Message);
+		throw exception;
 	}
 
 	/// <summary>
@@ -117,15 +123,16 @@ public sealed partial class SynologyApi {
 	/// <returns></returns>
 	/// <exception cref="ApiException"></exception>
 	public async Task<bool> AuthToken() {
-		var apiUrl  = $"{Server}/webapi/entry.cgi?api=SYNO.API.Auth&version=6&method=token";
-		var json    = await GetResultAsString(apiUrl).ConfigureAwait(false);
-		var result1 = DeserializeResponse<Login>(json);
-		if (result1.success) {
-			LoginInformation = result1.data;
+		Logger?.LogDebug("AuthToken");
+		var json  = await GetResultAsString(ApiName.SYNO_API_Auth, "token").ConfigureAwait(false);
+		var login = DeserializeResponse<Login>(json);
+		if (login.success) {
+			LoginInformation = login.data;
 			return LoginInformation is not null;
 		}
-		var error = result1.error;
-		throw GetAuthException(error, result1.Serialize());
+		var exception = GetAuthException(login.error, login.Serialize());
+		Logger?.LogWarning("{Message}",exception.Message);
+		throw exception;
 	}
 
 	private static ApiException GetAuthException(ApiResponse<Login?>.ApiError? error, string json) {

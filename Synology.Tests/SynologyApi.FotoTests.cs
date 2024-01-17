@@ -137,7 +137,7 @@ public class SynologyAPI_Foto_Tests {
 
 	[TestMethod]
 	public async Task FirstFile() {
-		using var api = await Settings.GetApi(TestContext);
+		using var api = await Settings.GetApi(TestContext, true, LogLevel.Trace);
 
 		var all = await api.FotoBrowseItemList(limit: 1,
 		                                       additional: ALL_ADDITIONALS);
