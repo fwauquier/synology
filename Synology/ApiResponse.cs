@@ -5,7 +5,7 @@
 
 namespace Synology;
 
-internal sealed class ApiResponse<T> {
+public sealed class ApiResponse<T> {
 	public T? data { get; init; }
 	public required bool success { get; init; }
 	public ApiError? error { get; init; }

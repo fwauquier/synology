@@ -34,8 +34,8 @@ public sealed class Folder : JsonModel {
 	public string? sort_direction { get; init; }
 
 	// ReSharper disable once ClassNeverInstantiated.Global
-	internal sealed class List : JsonModel {
+	public sealed class List : JsonModel {
 		/// <summary> List of items </summary>
-		public Folder[]? list { get; init; }
+		public required Folder[] list { get; init; }
 	}
 }
