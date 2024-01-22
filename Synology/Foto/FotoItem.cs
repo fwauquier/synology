@@ -1,22 +1,16 @@
-﻿// MIT License
-// Copyright (c) 2023 Frédéric Wauquier
-// 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-// 
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-using System.Text.Json.Serialization;
+﻿// <copyright>
+// MIT License
+// <author > Frederic Wauquier</author >
+// </copyright >
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 
 namespace Synology.Foto;
 
-public class FotoItem {
+public class FotoItem : JsonModel {
 	/// <summary> Name of file </summary>
-	public string? filename { get; init; }
+	public required string filename { get; init; }
 
 	/// <summary> Size of file </summary>
 	public int? filesize { get; init; }
@@ -47,32 +41,12 @@ public class FotoItem {
 	/// <summary> Additional informations </summary>
 	public Additional? additional { get; init; }
 
-#region Additional properties
-	/// <summary>
-	///     Additional properties
-	/// </summary>
-	[JsonExtensionData]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-	public Dictionary<string, object> AdditionalProperties { get; set; }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-#endregion
-
-	public class List {
+	public class List : JsonModel {
 		/// <summary> List of items </summary>
-		public List<FotoItem>? list { get; init; }
-
-#region Additional properties
-		/// <summary>
-		///     Additional properties
-		/// </summary>
-		[JsonExtensionData]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-		public Dictionary<string, object> AdditionalProperties { get; set; }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-#endregion
+		public required FotoItem[]? list { get; init; }
 	}
 
-	public class Additional {
+	public class Additional : JsonModel {
 		/// <summary>   </summary>
 		public int? orientation { get; init; }
 
@@ -86,10 +60,10 @@ public class FotoItem {
 		public Thumbnail? thumbnail { get; init; }
 
 		/// <summary>   </summary>
-		public string? video_convert { get; init; }
+		public videoConvert[]? video_convert { get; init; }
 
 		/// <summary>   </summary>
-		public string? video_meta { get; init; }
+		public Dictionary<string, object?>? video_meta { get; init; }
 
 		/// <summary>   </summary>
 		public string? provider_user_id { get; init; }
@@ -98,81 +72,51 @@ public class FotoItem {
 		public Tag[]? tag { get; init; }
 
 		/// <summary>   </summary>
-		public Dictionary<string, string>? exif { get; init; }
-
-		// /// <summary>   </summary>
-		// public string? aaaa { get; init; }
-		// /// <summary>   </summary>
-		// public string? aaaa { get; init; }
-		// /// <summary>   </summary>
-		// public string? aaaa { get; init; }
-		// /// <summary>   </summary>
-		// public string? aaaa { get; init; }
-		// /// <summary>   </summary>
-		// public string? aaaa { get; init; }
-		// /// <summary>   </summary>
-		// public string? aaaa { get; init; }
-		// /// <summary>   </summary>
-		// public string? aaaa { get; init; }
-		// /// <summary>   </summary>
-		// public string? aaaa { get; init; }
-		// /// <summary>   </summary>
-		// public string? aaaa { get; init; }
-		// /// <summary>   </summary>
-		// public string? aaaa { get; init; }
-		// /// <summary>   </summary>
-		// public string? aaaa { get; init; }
-
-#region Additional properties
-		/// <summary>
-		///     Additional properties
-		/// </summary>
-		[JsonExtensionData]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-		public Dictionary<string, object> AdditionalProperties { get; set; }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-#endregion
+		public Dictionary<string, object?>? exif { get; init; }
 	}
 
-	public class Tag {
+	public class videoConvert : JsonModel {
+		public required string quality { get; init; }
+		public videoConvertmetadata? metadata { get; init; }
+	}
+
+	public class videoConvertmetadata : JsonModel {
+		public int duration { get; init; }                   //": 98000,
+		public int orientation { get; init; }                //": 1,
+		public int frame_bitrate { get; init; }              //": 896706,
+		public int video_bitrate { get; init; }              //\": 763877,
+		public int audio_bitrate { get; init; }              //\": 128290,
+		public double framerate { get; init; }               //\": 23.976024627685548,
+		public int resolution_x { get; init; }               //\": 640,
+		public int resolution_y { get; init; }               //\": 360,
+		public required string video_codec { get; init; }    //\": "h264",
+		public required string audio_codec { get; init; }    //\": "aac_lc",
+		public required string container_type { get; init; } //\": "mp4",
+		public int video_profile { get; init; }              //\": 1,
+		public int video_level { get; init; }                //\": 30,
+		public int audio_frequency { get; init; }            //\": 44100,
+		public int audio_channel { get; init; }              //\": 2
+	}
+
+	public class Tag : JsonModel {
 		public int id { get; init; }
 		public string? name { get; init; }
 	}
 
-	public class Resolution {
+	public class Resolution : JsonModel {
 		/// <summary>   </summary>
 		public int height { get; init; }
 
 		/// <summary>   </summary>
 		public int width { get; init; }
-
-#region Additional properties
-		/// <summary>
-		///     Additional properties
-		/// </summary>
-		[JsonExtensionData]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-		public Dictionary<string, object> AdditionalProperties { get; set; }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-#endregion
 	}
 
-	public class Thumbnail {
+	public class Thumbnail : JsonModel {
 		public string? cache_key { get; init; }
 		public string? m { get; init; }
 		public string? preview { get; init; }
 		public string? sm { get; init; }
 		public int unit_id { get; init; }
 		public string? xl { get; init; }
-
-#region Additional properties
-		/// <summary>
-		///     Additional properties
-		/// </summary>
-		[JsonExtensionData]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-		public Dictionary<string, object> AdditionalProperties { get; set; }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-#endregion
 	}
 }

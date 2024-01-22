@@ -1,23 +1,7 @@
-﻿// MIT License
-// Copyright (c) 2023 Frédéric Wauquier
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or
-// sell copies of the Software, and to permit persons to whom the Software
-// is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+﻿// <copyright>
+// MIT License
+// <author > Frederic Wauquier</author >
+// </copyright >
 
 using System.Text;
 using System.Text.Json;
@@ -64,8 +48,8 @@ public sealed partial class SynologyApi : IDisposable {
 	///     Send a POST request to the server and return the result as a string
 	/// </summary>
 	/// <returns></returns>
-	internal async Task<string> PostResultAsString(ApiName apiName,string method, Dictionary<string, string?>? parameters=null, HttpContent? content = null) {
-		var uri=GetUri(apiName,method,parameters);
+	internal async Task<string> PostResultAsString(ApiName apiName, string method, List<UrlParameter>? parameters = null, HttpContent? content = null) {
+		var uri = GetUri(apiName, method, parameters);
 		Logger?.LogTrace("[POST] {RequestUri}", uri);
 		var response = await m_HttpClient.PostAsync(uri, content).ConfigureAwait(false);
 
@@ -74,45 +58,36 @@ public sealed partial class SynologyApi : IDisposable {
 		return new HttpRequestException($"Request failed with status code {response.StatusCode}").Message;
 	}
 
-	private   Uri GetUri(ApiName apiName,string method, Dictionary<string, string?>? parameters=null,bool addSid=true,bool addSynoToken=true) {
+	private Uri GetUri(ApiName apiName, string method, IReadOnlyCollection<UrlParameter>? parameters = null, bool addSid = true, bool addSynoToken = true) {
 		//var apiUrl = $"{Server}/webapi/entry.cgi?api=SYNO.API.Auth&version=6&method=login&{parameters}";
-		var sb = new StringBuilder( Server);
-		sb .Append("/webapi/");
-		sb .Append(apiName.GetPath());
-		sb .Append("?api=");
-		sb .Append(apiName.GetApiName());
-		sb .Append("&version=");
-		sb .Append(apiName.GetMaxVersion());
-		sb .Append("&method=");
-		sb .Append(method);
-		if(parameters is not null && parameters.Count>0) {
-
-			foreach (var item in parameters) {
-				if (item.Value is null) continue;
-				sb.Append('&');
-				sb.Append(item.Key);
-				sb.Append('=');
-				sb.Append(Uri.EscapeDataString(item.Value));
-			}
-		}
+		var sb = new StringBuilder(Server);
+		sb.Append("/webapi/");
+		sb.Append(apiName.GetPath());
+		sb.Append("?api=");
+		sb.Append(apiName.GetApiName());
+		sb.Append("&version=");
+		sb.Append(apiName.GetMaxVersion());
+		sb.Append("&method=");
+		sb.Append(method);
+		if (parameters is not null && parameters.Count > 0)
+			foreach (var item in parameters)
+				item.AddTo(sb);
 		if (LoginInformation is not null) {
-			if(addSid && !string.IsNullOrWhiteSpace( LoginInformation.sid)){
+			if (addSid && !string.IsNullOrWhiteSpace(LoginInformation.sid)) {
 				sb.Append("&_sid=");
 				sb.Append(LoginInformation.sid);
 			}
-			if(addSynoToken && !string.IsNullOrWhiteSpace( LoginInformation.synotoken)){
+			if (addSynoToken && !string.IsNullOrWhiteSpace(LoginInformation.synotoken)) {
 				sb.Append("&SynoToken=");
 				sb.Append(LoginInformation.synotoken);
 			}
-
 		}
-		return new Uri(sb.ToString(),UriKind.Absolute);
 
-
-
+		return new(sb.ToString(), UriKind.Absolute);
 	}
-	internal async Task<string> GetResultAsString(ApiName apiName,string method, Dictionary<string, string?>? parameters=null ) {
-		var uri =GetUri(apiName,method,parameters);
+
+	internal async Task<string> GetResultAsString(ApiName apiName, string method, IReadOnlyCollection<UrlParameter>? parameters = null) {
+		var uri = GetUri(apiName, method, parameters);
 		Logger?.LogTrace("[GET] {RequestUri}", uri);
 		var response = await m_HttpClient.GetAsync(uri).ConfigureAwait(false);
 
@@ -128,18 +103,39 @@ public sealed partial class SynologyApi : IDisposable {
 		// Console.WriteLine($"Request failed with status code {response.StatusCode}");
 	}
 
-	internal T? GetAndValidate<T>(string json) {
-		Logger?.LogTrace("[Deserialize]Source {Json}", json);
-		var response = JsonSerializer.Deserialize<ApiResponse<T?>>(json)
-		               ?? throw new ApiException($"Cannot deserialize string value to ApiResponse<{typeof(T).Name}>. Content:\r\n{json}");
-		if (response.success) {
+	internal T? GetAndValidate<T>(string jsonString) {
+		Logger?.LogTrace("[Deserialize]Source {Json}", jsonString);
+		ApiResponse<T?>? deserialize;
 #if DEBUG
-			if (response.data is JsonModel jsonModel) jsonModel.EnsureAllDataDeserialized(json);
-#endif
-			return response.data;
+		jsonString = JsonModel.Reformat(jsonString);
+		try {
+			deserialize = JsonSerializer.Deserialize<ApiResponse<T?>>(jsonString);
+		} catch (JsonException e) {
+			var lines = jsonString.Split(Environment.NewLine);
+			var iLine = e.LineNumber ?? int.MaxValue;
+			var line  = lines.Length > iLine ? lines[iLine] : string.Empty;
+
+			throw new ApiException($"Cannot deserialize response to {typeof(T).FullName}:{e.Message}"
+			                       + $"{Environment.NewLine}Line: {iLine}"
+			                       + $"{Environment.NewLine}BytePositionInLine: {e.BytePositionInLine}"
+			                       + $"{Environment.NewLine}Path:{e.Path}"
+			                       + $"{Environment.NewLine}Line content:{line}"
+			                       + $"{Environment.NewLine}{jsonString}",
+			                       e);
 		}
-		if (response.error is null) throw new ApiException($"Request failed. No error returned. Content:\r\n{response.Serialize()}");
-		throw new($"Request failed. {GetErrorDescription(response.error.code)} Content:\r\n{response.Serialize()}");
+
+#else
+		deserialize = JsonSerializer.Deserialize<Response<T>>(jsonString);
+#endif
+		if (deserialize is null) throw new ApiException($"Cannot deserialize response to {typeof(T).FullName}");
+		if (deserialize.success) {
+#if DEBUG
+			if (deserialize.data is JsonModel jsonModel) jsonModel.EnsureAllDataDeserialized();
+#endif
+			return deserialize.data;
+		}
+		if (deserialize.error is null) throw new ApiException($"Request failed. No error returned. Content:\r\n{deserialize.Serialize()}");
+		throw new($"Request failed. {GetErrorDescription(deserialize.error.code)} Content:\r\n{deserialize.Serialize()}");
 
 		static string GetErrorDescription(int code) {
 			return code switch
@@ -171,33 +167,49 @@ public sealed partial class SynologyApi : IDisposable {
 	}
 
 	private ApiResponse<T?> DeserializeResponse<T>(string json) {
-		Logger?.LogTrace("[Deserialize]Source {Json}", json);
-		try {
-			var obj = JsonSerializer.Deserialize<ApiResponse<T?>>(json);
-			if (obj is null) throw new ApiException($"Cannot deserialize string value to ApiResponse<{typeof(T).Name}>.{Environment.NewLine}*** JSON Content ***************************\r\n{json}{Environment.NewLine}");
+		var              jsonString = json;
+		ApiResponse<T?>? deserialize;
+		Logger?.LogTrace("Deserialize: {JsonString}", jsonString);
+
 #if DEBUG
-			if (obj.data is JsonModel jsonModel) jsonModel.EnsureAllDataDeserialized(json);
+		jsonString = JsonModel.Reformat(jsonString);
+		try {
+			deserialize = JsonSerializer.Deserialize<ApiResponse<T?>>(jsonString);
+		} catch (JsonException e) {
+			var lines = jsonString.Split(Environment.NewLine);
+			var iLine = e.LineNumber ?? int.MaxValue;
+			var line  = lines.Length > iLine ? lines[iLine] : string.Empty;
+
+			throw new ApiException($"Cannot deserialize response to {typeof(T).FullName}:{e.Message}"
+			                       + $"{Environment.NewLine}Line: {iLine}"
+			                       + $"{Environment.NewLine}BytePositionInLine: {e.BytePositionInLine}"
+			                       + $"{Environment.NewLine}Path:{e.Path}"
+			                       + $"{Environment.NewLine}Line content:{line}"
+			                       + $"{Environment.NewLine}{jsonString}",
+			                       e);
+		}
+
+#else
+		deserialize = JsonSerializer.Deserialize<Response<T>>(jsonString);
 #endif
-			return obj;
-		} catch (Exception ex) {
-			throw new ApiException($"Cannot deserialize string value to ApiResponse<{typeof(T).Name}>. Content:\r\n{json}", ex);
+
+		if (deserialize is null) throw new ApiException($"Cannot deserialize response to {typeof(T).FullName}");
+		if (deserialize.success == false) {
+			var sb     = new StringBuilder();
+			var errors = deserialize.error?.errors;
+			if (errors != null)
+				foreach (var pair in errors)
+					sb.AppendLine($"{pair.Key}:{pair.Value}");
+			throw new ApiException($"Response is not successfully. Code:{deserialize.error?.code}\r\n{sb}");
 		}
+#if DEBUG
+		var result = deserialize.data;
+		if (result is JsonModel jsonModel)
+			jsonModel.EnsureAllDataDeserialized();
+		else if (result is IEnumerable<JsonModel> jsonModels)
+			foreach (var jsonModel2 in jsonModels)
+				jsonModel2.EnsureAllDataDeserialized();
+#endif
+		return deserialize;
 	}
-
-
-	// ReSharper disable UnusedAutoPropertyAccessor.Local
-	private sealed class ApiResponse<T> {
-		public T? data { get; init; }
-		public required bool success { get; init; }
-		public ApiError? error { get; init; }
-
-		public sealed class ApiError {
-			public required int code { get; set; }
-
-			// ReSharper disable once UnusedMember.Local
-			public   Dictionary<string, string>? errors { get; set; }
-		}
-	}
-
-	// ReSharper restore UnusedAutoPropertyAccessor.Local
 }

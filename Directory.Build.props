@@ -3,13 +3,12 @@
     <Copyright>Copyright © FLYINGHOLDING N.V. $([System.DateTime]::Now.ToString(yyyy))</Copyright>
     <Company>FLYINGHOLDING N.V.</Company>
     <Authors>Frederic Wauquier</Authors>
-    <!--        <PlatformTarget>AnyCPU</PlatformTarget>-->
     <Nullable>enable</Nullable>
     <AnalysisLevel>latest</AnalysisLevel>
     <LangVersion>default</LangVersion>
     <NeutralLanguage>en-US</NeutralLanguage>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!--		<Platforms>AnyCPU;x64</Platforms>-->
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -20,6 +19,7 @@
     <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
     <DebugType>pdbonly</DebugType>
     <SourceRevisionId>build$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</SourceRevisionId>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
@@ -41,12 +41,19 @@
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <DefaultItemExcludesInProjectFolder>$(DefaultItemExcludesInProjectFolder);**/*.cmd;**/*.bak;**/*.DotSettings;**/*.edmx;**/*.lnk;**/*.log</DefaultItemExcludesInProjectFolder>
+  </PropertyGroup>
 
-  <ItemGroup>
-    <None Remove="_build.cmd"/>
-    <None Remove="*.cmd"/>
-    <None Remove="*.DotSettings"/>
-    <None Remove="*.edmx"/>
-    <None Remove="*.bak"/>
+  <!--Package References for Code Analysis Tools-->
+  <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <!--    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.8.14">-->
+    <!--      <PrivateAssets>all</PrivateAssets>-->
+    <!--      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>-->
+    <!--    </PackageReference>-->
+
+
   </ItemGroup>
+
+
 </Project>

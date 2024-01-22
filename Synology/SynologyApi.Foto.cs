@@ -1,23 +1,7 @@
-﻿// MIT License
-// Copyright (c) 2023 Frédéric Wauquier
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or
-// sell copies of the Software, and to permit persons to whom the Software
-// is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+﻿// <copyright>
+// MIT License
+// <author > Frederic Wauquier</author >
+// </copyright >
 
 // ReSharper disable UnusedMember.Global
 
@@ -114,24 +98,19 @@ public sealed partial class SynologyApi {
 		if (!string.IsNullOrEmpty(type)) uri.Append($"&type={type}");
 		if (!string.IsNullOrEmpty(passphrase)) uri.Append($"&passphrase={passphrase}");
 
-		var concat = string.Join("\",\"", additional.Where(static i => !string.IsNullOrWhiteSpace(i)).Select(i => i.Trim()));
-
-
-
 		var json = await GetResultAsString(ApiName.SYNO_Foto_Browse_Item,
-		                                             "list",
-		                                             new()
-		                                             {
-			                                             {"offset",  offset.ToString()},
-			                                             {"limit",  limit.ToString()},
-			                                             {"folder_id",  folder_id?.ToString()},
-			                                             {"sort_by",  sort_by},
-			                                             {"sort_direction", sort_direction},
-			                                             {"type", type},
-			                                             {"passphrase", passphrase},
-			                                             {"additional", string.IsNullOrWhiteSpace(concat)?null:concat},
-		                                             }).ConfigureAwait(false);
-
+		                                   "list",
+		                                   [
+			                                   UrlParameter.Get("offset", offset.ToString()),
+			                                   UrlParameter.Get("limit", limit.ToString()),
+			                                   UrlParameter.Get("folder_id", folder_id?.ToString()),
+			                                   UrlParameter.Get("sort_by", sort_by),
+			                                   UrlParameter.Get("sort_direction", sort_direction),
+			                                   UrlParameter.Get("type", type),
+			                                   UrlParameter.Get("passphrase", passphrase),
+			                                   UrlParameter.Get("additional", additional)
+		                                   ])
+			.ConfigureAwait(false);
 
 		return GetAndValidate<FotoItem.List?>(json);
 	}
@@ -163,14 +142,14 @@ public sealed partial class SynologyApi {
 
 		var resultAsString = await GetResultAsString(ApiName.SYNO_Foto_Browse_Folder,
 		                                             "list",
-		                                             new()
-		                                             {
-			                                             {"offset",  offset.ToString()},
-			                                             {"limit",  limit.ToString()},
-			                                             {"id",id?.ToString()},
-			                                             {"sort_by",  sort_by},
-			                                             {"sort_direction", sort_direction},
-		                                             }).ConfigureAwait(false);
+		                                             [
+			                                             UrlParameter.Get("offset", offset),
+			                                             UrlParameter.Get("limit", limit),
+			                                             UrlParameter.Get("id", id),
+			                                             UrlParameter.Get("sort_by", sort_by),
+			                                             UrlParameter.Get("sort_direction", sort_direction)
+		                                             ])
+			.ConfigureAwait(false);
 		return GetAndValidate<Folder.List>(resultAsString)?.list;
 	}
 
@@ -178,13 +157,8 @@ public sealed partial class SynologyApi {
 		EnsureLoggedIn();
 		var json = await GetResultAsString(ApiName.SYNO_Foto_Browse_Folder,
 		                                   "get",
-		                                   new()
-		                                   {
-			                                   {"id", id?.ToString()},
-		                                   })
+		                                   [UrlParameter.Get("id", id)])
 			.ConfigureAwait(false);
 		return GetAndValidate<FotoBrowseFolderGetResponse>(json)?.folder;
 	}
-
-
 }

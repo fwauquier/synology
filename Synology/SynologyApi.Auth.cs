@@ -1,23 +1,7 @@
-﻿// MIT License
-// Copyright (c) 2023 Frédéric Wauquier
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or
-// sell copies of the Software, and to permit persons to whom the Software
-// is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+﻿// <copyright>
+// MIT License
+// <author > Frederic Wauquier</author >
+// </copyright >
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
@@ -51,8 +35,9 @@ public sealed partial class SynologyApi {
 	public async Task<string> AuthLogOut() {
 		EnsureLoggedIn();
 		Logger?.LogDebug("SYNO.API.Auth.logout");
+
 		//var apiUrl = $"{Server}/webapi/entry.cgi?api=SYNO.API.Auth&version=6&method=logout&_sid={LoginInformation.sid}";
-		var result = await GetResultAsString(ApiName.SYNO_API_Auth,"logout").ConfigureAwait(false);
+		var result = await GetResultAsString(ApiName.SYNO_API_Auth, "logout").ConfigureAwait(false);
 		LoginInformation = null;
 		return result;
 	}
@@ -91,17 +76,17 @@ public sealed partial class SynologyApi {
 
 		var json = await GetResultAsString(ApiName.SYNO_API_Auth,
 		                                   "login",
-		                                   new()
+		                                   new[]
 		                                   {
-			                                   {"account", user},
-			                                   {"passwd", password},
-			                                   {"session", session},
-			                                   {"format", format},
-			                                   {"opt_code", opt_code},
-			                                   {"enable_syno_token", enable_syno_token},
-			                                   {"enable_device_token", enable_device_token},
-			                                   {"device_name", device_name},
-			                                   {"device_id", device_id}
+			                                   UrlParameter.Get("account", user),
+			                                   UrlParameter.Get("passwd", password),
+			                                   UrlParameter.Get("session", session),
+			                                   UrlParameter.Get("format", format),
+			                                   UrlParameter.Get("opt_code", opt_code),
+			                                   UrlParameter.Get("enable_syno_token", enable_syno_token),
+			                                   UrlParameter.Get("enable_device_token", enable_device_token),
+			                                   UrlParameter.Get("device_name", device_name),
+			                                   UrlParameter.Get("device_id", device_id)
 		                                   })
 			.ConfigureAwait(false);
 		var login = DeserializeResponse<Login>(json);
@@ -111,7 +96,7 @@ public sealed partial class SynologyApi {
 		}
 
 		var exception = GetAuthException(login.error, login.Serialize());
-		Logger?.LogWarning("{Message}",exception.Message);
+		Logger?.LogWarning("{Message}", exception.Message);
 		throw exception;
 	}
 
@@ -131,7 +116,7 @@ public sealed partial class SynologyApi {
 			return LoginInformation is not null;
 		}
 		var exception = GetAuthException(login.error, login.Serialize());
-		Logger?.LogWarning("{Message}",exception.Message);
+		Logger?.LogWarning("{Message}", exception.Message);
 		throw exception;
 	}
 

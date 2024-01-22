@@ -1,23 +1,7 @@
-﻿// MIT License
-// Copyright (c) 2023 Frédéric Wauquier
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or
-// sell copies of the Software, and to permit persons to whom the Software
-// is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+﻿// <copyright>
+// MIT License
+// <author > Frederic Wauquier</author >
+// </copyright >
 
 using Microsoft.Extensions.Logging;
 using Synology.Foto;
@@ -28,21 +12,22 @@ namespace Synology;
 
 [TestClass]
 public class SynologyAPI_Foto_Tests {
-	private static readonly string[] ALL_ADDITIONALS = [
-		                                                   "thumbnail",
-		                                                   "resolution",
-		                                                   "orientation",
-		                                                   "video_convert",
-		                                                   "video_meta",
-		                                                   "provider_user_id",
-		                                                   "exif",
-		                                                   "tag",
-		                                                   "description",
-		                                                   "gps",
-		                                                   "geocoding_id",
-		                                                   "address",
-		                                                   "person"
-	                                                   ];
+	private static readonly string[] ALL_ADDITIONALS =
+	[
+		"thumbnail",
+		"resolution",
+		"orientation",
+		"video_convert",
+		"video_meta",
+		"provider_user_id",
+		"exif",
+		"tag",
+		"description",
+		"gps",
+		"geocoding_id",
+		"address",
+		"person"
+	];
 
 	public TestContext TestContext { get; set; } = default!;
 
@@ -71,8 +56,8 @@ public class SynologyAPI_Foto_Tests {
 
 		async Task ProcessFolder(int? id) {
 			var folders = await api.FotoBrowseFolderList(limit: 1000, id: id);
-			if (folders  is null) return;
-			foreach (var folder in folders ) {
+			if (folders is null) return;
+			foreach (var folder in folders) {
 				TestContext.WriteLine($"{folder.name} ({folder.id})");
 				await ProcessFolder(folder.id);
 			}
@@ -104,7 +89,7 @@ public class SynologyAPI_Foto_Tests {
 				var fotoItems = page?.list;
 				if (fotoItems is null) break;
 				photos.AddRange(fotoItems);
-				if (fotoItems.Count < limit) break;
+				if (fotoItems.Length < limit) break;
 			} catch (Exception e) {
 				Console.WriteLine(e);
 				break;
